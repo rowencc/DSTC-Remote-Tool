@@ -59,9 +59,14 @@ def get_device(device_id: int, db: Session = Depends(get_db)):
 def trigger_scan(network: Optional[str] = None, db: Session = Depends(get_db)):
     devices = scanner.scan_network(network)
     new_count = 0
+    scanned = 0
     for dev_data in devices:
+        mac = dev_data.get("mac_address", "")
+        if not mac:
+            continue
+        scanned += 1
         existing = db.query(Device).filter(
-            Device.mac_address == dev_data["mac_address"]
+            Device.mac_address == mac
         ).first()
         identified = identifier.identify_device(dev_data)
         if existing:
@@ -69,8 +74,8 @@ def trigger_scan(network: Optional[str] = None, db: Session = Depends(get_db)):
             existing.ip_address = dev_data["ip_address"]
         else:
             new_device = Device(
-                mac_address=dev_data["mac_address"],
-                mac_prefix=dev_data["mac_address"][:8],
+                mac_address=mac,
+                mac_prefix=mac[:8],
                 vendor=identified.get("vendor"),
                 device_type=identified.get("device_type"),
                 ip_address=dev_data["ip_address"],
@@ -80,7 +85,7 @@ def trigger_scan(network: Optional[str] = None, db: Session = Depends(get_db)):
             db.add(new_device)
             new_count += 1
     db.commit()
-    return {"device_count": len(devices), "new_device_count": new_count}
+    return {"device_count": scanned, "new_device_count": new_count}
 
 @router.put("/{device_id}")
 def update_device(
