@@ -12,7 +12,8 @@ database:
 
 scanner:
   networks:
-    - 192.168.1.0/24
+    - 192.168.100.0/24
+    - 192.168.101.0/24
   interval: 300
   timeout: 30
 
