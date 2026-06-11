@@ -11,7 +11,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     device_count = db.query(Device).count()
     alert_count = db.query(Alert).filter(Alert.acknowledged == False).count()
     risk_devices = db.query(Device).filter(
-        Device.risk_level.in_("HIGH", "CRITICAL")
+        Device.risk_level.in_(["HIGH", "CRITICAL"])
     ).count()
     return {
         "device_count": device_count,
