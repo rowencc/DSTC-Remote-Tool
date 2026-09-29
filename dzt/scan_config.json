@@ -1,0 +1,44 @@
+{
+  "_last_modified": 1790235602.6063354,
+  "defaults": {
+    "retries": 2,
+    "timeout_sec": 30
+  },
+  "logging": {
+    "history_root": "~/logs"
+  },
+  "report": {
+    "channel": "http",
+    "http": {
+      "method": "POST",
+      "url": "http://zt.bjdskj.com/api/api/v1/data/receiveAc"
+    }
+  },
+  "sources": {
+    "primary": {
+      "base": "http://211.149.229.138:18388",
+      "type": "control_hub"
+    }
+  },
+  "targets": [
+    {
+      "id": "rgw-192-168-200-1",
+      "brand": "rgw",
+      "model": "universal",
+      "type": "rgw.universal",
+      "firmware": "unknown",
+      "interval_sec": 60,
+      "collect": [
+        "device_list"
+      ],
+      "endpoint": {
+        "host": "192.168.200.1",
+        "username": "admin",
+        "password": "admin",
+        "device_path": "/xml_action.cgi?file=device_management_all",
+        "base_path": ""
+      }
+    }
+  ],
+  "_note": "targets cleared for form redesign"
+}
