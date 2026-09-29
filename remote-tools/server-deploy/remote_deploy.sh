@@ -58,9 +58,12 @@ CLIENT_VERSION="0.51.3"
 CLIENT_ARCH="arm64"  # arm64 / amd64
 CLIENT_DOWNLOAD_URL="https://github.com/fatedier/frp/releases/download/v${CLIENT_VERSION}/frp_${CLIENT_VERSION}_linux_${CLIENT_ARCH}.tar.gz"
 
-# File source directory (files/ subdirectory under script directory)
+# Source directories (relative to this script)
+#   TOOLS_DIR: client tools (plugins/, config_web.py, scan_config.json)
+#   BIN_DIR:   frpc binary download cache (remote-client)
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-FILES_DIR="${SCRIPT_DIR}/files"
+TOOLS_DIR="$(cd "${SCRIPT_DIR}/../client-tools" && pwd)"
+BIN_DIR="${SCRIPT_DIR}/files"
 
 # Device paths
 DEVICE_PLUGINS_DIR="/root/main/plugins"
@@ -235,22 +238,22 @@ if found == 0:
 # ==================== Prepare Files ====================
 
 prepare_files() {
-    if [ ! -d "$FILES_DIR" ]; then
-        error "File directory does not exist: $FILES_DIR"
+    if [ ! -d "$TOOLS_DIR" ]; then
+        error "Tools directory does not exist: $TOOLS_DIR"
     fi
     
     log "Checking local files..."
     
-    local required_files=(
-        "rgw_plugin.py"
-        "h3c_plugin.py"
+    local required_tools=(
+        "plugins/rgw_plugin.py"
+        "plugins/h3c_plugin.py"
         "config_web.py"
         "scan_config.json"
     )
     
-    for file in "${required_files[@]}"; do
-        if [ ! -f "$FILES_DIR/$file" ]; then
-            warn "File not found: $FILES_DIR/$file (will skip)"
+    for file in "${required_tools[@]}"; do
+        if [ ! -f "$TOOLS_DIR/$file" ]; then
+            warn "File not found: $TOOLS_DIR/$file (will skip)"
         fi
     done
     
@@ -299,28 +302,28 @@ deploy_plugins() {
     ssh_cmd "$device_port" "mkdir -p $DEVICE_PLUGINS_DIR $DEVICE_TOOLS_DIR"
     
     # Deploy rgw_plugin.py
-    if [ -f "$FILES_DIR/rgw_plugin.py" ]; then
+    if [ -f "$TOOLS_DIR/plugins/rgw_plugin.py" ]; then
         log "  Deploying rgw_plugin.py..."
-        scp_cmd "$device_port" "$FILES_DIR/rgw_plugin.py" "$DEVICE_PLUGINS_DIR/rgw.py"
+        scp_cmd "$device_port" "$TOOLS_DIR/plugins/rgw_plugin.py" "$DEVICE_PLUGINS_DIR/rgw.py"
     fi
     
     # Deploy h3c_plugin.py
-    if [ -f "$FILES_DIR/h3c_plugin.py" ]; then
+    if [ -f "$TOOLS_DIR/plugins/h3c_plugin.py" ]; then
         log "  Deploying h3c_plugin.py..."
-        scp_cmd "$device_port" "$FILES_DIR/h3c_plugin.py" "$DEVICE_PLUGINS_DIR/h3c.py"
+        scp_cmd "$device_port" "$TOOLS_DIR/plugins/h3c_plugin.py" "$DEVICE_PLUGINS_DIR/h3c.py"
     fi
     
     # Deploy config_web.py
-    if [ -f "$FILES_DIR/config_web.py" ]; then
+    if [ -f "$TOOLS_DIR/config_web.py" ]; then
         log "  Deploying config_web.py..."
-        scp_cmd "$device_port" "$FILES_DIR/config_web.py" "$DEVICE_TOOLS_DIR/config_web.py"
+        scp_cmd "$device_port" "$TOOLS_DIR/config_web.py" "$DEVICE_TOOLS_DIR/config_web.py"
     fi
     
     # Deploy scan_config.json (backup first)
-    if [ -f "$FILES_DIR/scan_config.json" ]; then
+    if [ -f "$TOOLS_DIR/scan_config.json" ]; then
         log "  Deploying scan_config.json (backup first)..."
         ssh_cmd "$device_port" "test -f $DEVICE_CONFIG_DIR/scan_config.json && cp -a $DEVICE_CONFIG_DIR/scan_config.json $DEVICE_CONFIG_DIR/scan_config.json.bak.\$(date +%s) || true"
-        scp_cmd "$device_port" "$FILES_DIR/scan_config.json" "$DEVICE_CONFIG_DIR/scan_config.json"
+        scp_cmd "$device_port" "$TOOLS_DIR/scan_config.json" "$DEVICE_CONFIG_DIR/scan_config.json"
     fi
     
     log "Plugin deployment complete"
@@ -411,7 +414,7 @@ deploy_client() {
     ssh_cmd "$device_port" "mkdir -p $DEVICE_CLIENT_BIN_DIR $DEVICE_CLIENT_CONF_DIR $DEVICE_CLIENT_LOG_DIR"
     
     # Check for remote client binary
-    if [ ! -f "$FILES_DIR/remote-client" ]; then
+    if [ ! -f "$BIN_DIR/remote-client" ]; then
         warn "No remote-client binary locally, checking device..."
         
         # Check if device already has remote-client
@@ -421,7 +424,7 @@ deploy_client() {
         if [ "$existing_client" = "exists" ]; then
             log "  Device already has remote-client, skipping download"
         else
-            warn "  Device has no remote-client, please download manually to $FILES_DIR/remote-client"
+            warn "  Device has no remote-client, please download manually to $BIN_DIR/remote-client"
             warn "  Download link: $CLIENT_DOWNLOAD_URL"
             return 1
         fi
@@ -429,7 +432,7 @@ deploy_client() {
         log "  Uploading remote-client binary..."
         
         # Create temp file first to avoid Text file busy error
-        scp_cmd "$device_port" "$FILES_DIR/remote-client" "$DEVICE_CLIENT_BIN_DIR/remote-client.new"
+        scp_cmd "$device_port" "$BIN_DIR/remote-client" "$DEVICE_CLIENT_BIN_DIR/remote-client.new"
         ssh_cmd "$device_port" "chmod +x $DEVICE_CLIENT_BIN_DIR/remote-client.new"
         
         # Backup old remote-client (if exists)

@@ -4,8 +4,12 @@
 # =============================================================================
 #
 # 【作用】
-#   1. 整包备份到本地: pw/device_backup_<时间戳>/
-#   2. 覆盖本地工作副本: rgw_plugin.py / h3c_plugin.py / config_web.py / scan_config.json
+#   1. 整包备份到本地: other/device_backup_<时间戳>/
+#   2. 覆盖 client-tools/ 下本地工作副本:
+#        client-tools/plugins/rgw_plugin.py
+#        client-tools/plugins/h3c_plugin.py
+#        client-tools/config_web.py
+#        client-tools/scan_config.json
 #   3. 生成 MANIFEST.txt（文件清单 + targets + 部署提示）
 #
 # 【依赖】
@@ -87,6 +91,7 @@ SSHPASS="${SSHPASS:-dongshengniubi666}"
 export SSHPASS
 
 LOCAL="$(cd "$(dirname "$0")" && pwd)"
+CLIENT_TOOLS_DIR="$(cd "${LOCAL}/../client-tools" && pwd)"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 BK="$LOCAL/device_backup_$STAMP"
 mkdir -p "$BK/plugins" "$BK/tools" "$BK/config"
@@ -114,11 +119,11 @@ done < <("${SSH[@]}" "root@$HOST" 'ls /root/scan_config.json.bak.* 2>/dev/null' 
 "${SSH[@]}" "root@$HOST" 'crontab -l' > "$BK/config/crontab.txt" || true
 "${SSH[@]}" "root@$HOST" 'systemctl cat config-web.service' > "$BK/config/config-web.service.txt" || true
 
-# 覆盖本地工作副本
-"${SCP[@]}" "root@${HOST}:/root/main/plugins/rgw.py" "$LOCAL/rgw_plugin.py"
-"${SCP[@]}" "root@${HOST}:/root/main/plugins/h3c.py" "$LOCAL/h3c_plugin.py"
-"${SCP[@]}" "root@${HOST}:/root/main/tools/config_web.py" "$LOCAL/config_web.py"
-"${SCP[@]}" "root@${HOST}:/root/scan_config.json" "$LOCAL/scan_config.json"
+# 覆盖 client-tools/ 下本地工作副本
+"${SCP[@]}" "root@${HOST}:/root/main/plugins/rgw.py" "${CLIENT_TOOLS_DIR}/plugins/rgw_plugin.py"
+"${SCP[@]}" "root@${HOST}:/root/main/plugins/h3c.py" "${CLIENT_TOOLS_DIR}/plugins/h3c_plugin.py"
+"${SCP[@]}" "root@${HOST}:/root/main/tools/config_web.py" "${CLIENT_TOOLS_DIR}/config_web.py"
+"${SCP[@]}" "root@${HOST}:/root/scan_config.json" "${CLIENT_TOOLS_DIR}/scan_config.json"
 
 python3 - <<PY
 from pathlib import Path

@@ -9,11 +9,11 @@ deploy_device.py — 一键部署到探针硬件（macOS / Windows）
   scan_config、systemd 服务部署到设备并启动。
 
 【部署内容】
-  本地 pw/ 下:
-    rgw_plugin.py   -> /root/main/plugins/rgw.py      （4G CPE 采集）
-    h3c_plugin.py   -> /root/main/plugins/h3c.py      （H3C 采集）
-    config_web.py   -> /root/main/tools/config_web.py （配置页）
-    scan_config.json-> /root/scan_config.json         （可选，先备份）
+  本地 client-tools/ 下:
+    plugins/rgw_plugin.py -> /root/main/plugins/rgw.py      （4G CPE 采集）
+    plugins/h3c_plugin.py -> /root/main/plugins/h3c.py      （H3C 采集）
+    config_web.py         -> /root/main/tools/config_web.py （配置页）
+    scan_config.json      -> /root/scan_config.json         （可选，先备份）
   远端写入:
     /etc/systemd/system/config-web.service
     systemctl daemon-reload && enable --now && restart config-web
@@ -68,17 +68,17 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-LOCAL = Path(__file__).resolve().parent
+CLIENT_TOOLS_DIR = Path(__file__).resolve().parent.parent / "client-tools"
 DEFAULT_PORT = 12222
 DEFAULT_USER = "root"
 DEFAULT_PASSWORD = "dongshengniubi666"
 
 # 本地文件 -> 远端路径
 FILES: List[Tuple[str, str]] = [
-    ("rgw_plugin.py", "/root/main/plugins/rgw.py"),
-    ("h3c_plugin.py", "/root/main/plugins/h3c.py"),
-    ("config_web.py", "/root/main/tools/config_web.py"),
-    ("scan_config.json", "/root/scan_config.json"),
+    (str(CLIENT_TOOLS_DIR / "plugins" / "rgw_plugin.py"), "/root/main/plugins/rgw.py"),
+    (str(CLIENT_TOOLS_DIR / "plugins" / "h3c_plugin.py"), "/root/main/plugins/h3c.py"),
+    (str(CLIENT_TOOLS_DIR / "config_web.py"), "/root/main/tools/config_web.py"),
+    (str(CLIENT_TOOLS_DIR / "scan_config.json"), "/root/scan_config.json"),
 ]
 
 UNIT_NAME = "config-web.service"
@@ -342,17 +342,17 @@ def deploy(ip: str, port: int, user: str, password: str,
         )
 
     # 逐个推送
-    for local_name, remote in FILES:
+    for local, remote in FILES:
         if skip_config and remote.endswith("scan_config.json"):
-            log(f"  SKIP {local_name}")
+            log(f"  SKIP {remote}")
             continue
-        local = LOCAL / local_name
-        if not local.exists():
-            if local_name == "scan_config.json":
-                log(f"  SKIP {local_name}（本地不存在）")
+        local_path = Path(local)
+        if not local_path.exists():
+            if remote.endswith("scan_config.json"):
+                log(f"  SKIP {remote}（本地不存在）")
                 continue
-            die(f"缺少本地文件: {local}")
-        backend.put(local, remote)
+            die(f"缺少本地文件: {local_path}")
+        backend.put(local_path, remote)
 
     # 写 systemd unit（临时文件再 put）
     if not no_service:

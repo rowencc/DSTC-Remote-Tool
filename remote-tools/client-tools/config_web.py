@@ -9,10 +9,10 @@ DsFlexProbe 路由器配置页（config_web.py）
   失败会标出卡在哪一步及处理建议；支持删除/清空已保存目标。
 
 【本机开发/本地运行】
-  本地工作副本: pw/config_web.py
+  本地工作副本: client-tools/config_web.py
   依赖: Python3 标准库；验证上报时需能 import 到 dsprobe（硬件端已具备）
   临时前台跑（改 SCAN_CONFIG / PLUGINS_DIR 避免动系统配置）:
-    cd pw
+    cd client-tools
     SCAN_CONFIG=./scan_config.json \
     PLUGINS_DIR=./plugins \
     CONFIG_WEB_PORT=18080 \
@@ -49,8 +49,8 @@ DsFlexProbe 路由器配置页（config_web.py）
     pw/config_web.py root@192.168.200.100:/root/main/tools/config_web.py
 
   # 2) 推送插件（按需，brand -> 文件名）
-  sshpass -e scp -O -P 12222 ... pw/rgw_plugin.py  root@192.168.200.100:/root/main/plugins/rgw.py
-  sshpass -e scp -O -P 12222 ... pw/h3c_plugin.py  root@192.168.200.100:/root/main/plugins/h3c.py
+  sshpass -e scp -O -P 12222 ... client-tools/plugins/rgw_plugin.py root@192.168.200.100:/root/main/plugins/rgw.py
+  sshpass -e scp -O -P 12222 ... client-tools/plugins/h3c_plugin.py root@192.168.200.100:/root/main/plugins/h3c.py
 
   # 3) 首次安装并启用配置页服务
   sshpass -e ssh -p 12222 ... root@192.168.200.100 <<'EOF'
